@@ -1,23 +1,23 @@
 package tableSchema.ods_shop
-import constant.nameInfo._
+import constant.columnName._
 
 object ods_01_user_action_log extends Enumeration {
 
-  val Action = Value("action")
-  val Event_type = Value("event_type")
-  val Session_id = Value("session_id")
-  val Device_id = Value("device_id")
-  val User_id = Value("user_id")
-  val Os = Value("os")
-  val Os_version = Value("os_version")
-  val Manufacturer = Value("manufacturer")
-  val Carrier = Value("carrier")
-  val Network_type = Value("network_type")
-  val Area_code = Value("area_code")
-  val Longitude = Value("longitude")
-  val Latitude = Value("latitude")
-  val Page_id = Value("page_id")
-  val Extinfo = Value("extinfo")
-  val Ct = Value("ct")
+  val Col_action = Value(Col_ods_action)
+  val Col_event_type = Value(Col_ods_event_type)
+  val Col_session_id = Value(Col_ods_session_id)
+  val Col_device_id = Value(Col_ods_device_id)
+  val Col_user_id = Value(Col_ods_user_id)
+  val Col_os = Value(Col_ods_os)
+  val Col_os_version = Value(Col_ods_os_version)
+  val Col_manufacturer = Value(Col_ods_manufacturer)
+  val Col_carrier = Value(Col_ods_carrier)
+  val Col_network_type = Value(Col_ods_network_type)
+  val Col_area_code = Value(Col_ods_area_code)
+  val Col_longitude = Value(Col_ods_longitude)
+  val Col_latitude = Value(Col_ods_latitude)
+  val Col_page_id = Value(Col_ods_page_id)
+  val Col_extinfo = Value(Col_ods_extinfo)
+  val Col_ct = Value(Col_com_ct)
 
 }

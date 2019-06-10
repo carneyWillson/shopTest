@@ -3,7 +3,7 @@ package etl.transformation
 import org.apache.spark.{SparkConf, sql}
 import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.functions._
-import constant.nameInfo._
+import constant.globalConstant._
 import org.apache.spark.sql.types.StringType
 import util.Implicit._
 import util.myudf
@@ -20,7 +20,7 @@ class Init_dw(sparkSession: SparkSession, path: String) {
 
   // 加载数据, 并注册表
   val Ods_01_user_action_log = sparkSession.read
-  .load(path)
+  .parquet(path)
   .toDF.cache
   Ods_01_user_action_log.createOrReplaceTempView(TableName_ods_01_user_action_log)
 
@@ -42,6 +42,7 @@ class Init_dw(sparkSession: SparkSession, path: String) {
     init_dw_actlog_order.show()
     // 支付主题
     init_dw_actlog_order_pay.show()
+
   }
 
 
@@ -74,10 +75,12 @@ class Init_dw(sparkSession: SparkSession, path: String) {
 
     val dw_actlog_launch = Ods_01_user_action_log
       // 居然要三个等号..
-      .where($"$Action" === s"${action.Launch}")
+      .where($"$Col_action" === s"${action.Launch}")
       .selectExpr(dw_shop.dw_actlog_launch:_*)
 
     dw_actlog_launch.createOrReplaceTempView(TableName_dw_actlog_launch)
+
+    sparkSession.sql(s"insert into dw_shop.$TableName_dw_actlog_launch partition(bdp_day = '11') select * from $TableName_dw_actlog_launch ")
     dw_actlog_launch
   }
 
@@ -86,7 +89,7 @@ class Init_dw(sparkSession: SparkSession, path: String) {
    import tableSchema.ods_shop.ods_01_user_action_log._
 
     val dw_actlog_exit = Ods_01_user_action_log
-      .where($"$Action" === s"${action.Exit}")
+      .where($"$Col_action" === s"${action.Exit}")
       .selectExpr(dw_shop.dw_actlog_exit:_*)
 
     dw_actlog_exit.createOrReplaceTempView(TableName_dw_actlog_exit)
@@ -98,7 +101,7 @@ class Init_dw(sparkSession: SparkSession, path: String) {
     import tableSchema.ods_shop.ods_01_user_action_log._
 
     val dw_actlog_pageview = Ods_01_user_action_log
-      .where(s"$Action in ('${action.Page_enter_h5}', '${action.Page_enter_native}')")
+      .where(s"$Col_action in ('${action.Page_enter_h5}', '${action.Page_enter_native}')")
       .selectExpr(dw_shop.dw_actlog_pageview:_*)
 
     dw_actlog_pageview.createOrReplaceTempView(TableName_dw_actlog_pageview)
@@ -112,8 +115,8 @@ class Init_dw(sparkSession: SparkSession, path: String) {
    // 将方法转为udf
    val get_target_ids = udf(myudf.get_target_ids _)
    val dw_actlog_product_view = Ods_01_user_action_log
-     .where(s"$Event_type in ('${event_type.View}', '${event_type.Slide}')")
-     .withColumn(s"${dw_shop.dw_actlog_product_view.Good_id}", get_target_ids($"Extinfo"))
+     .where(s"$Col_event_type in ('${event_type.View}', '${event_type.Slide}')")
+     .withColumn(s"${dw_shop.dw_actlog_product_view.Col_goods_id}", get_target_ids($"Extinfo"))
      .selectExpr(dw_shop.dw_actlog_product_view:_*)
 
 //    var sql =
@@ -138,11 +141,11 @@ class Init_dw(sparkSession: SparkSession, path: String) {
     import tableSchema.ods_shop.ods_01_user_action_log._
 
     val temp0_interactive_click = Ods_01_user_action_log
-      .where($"$Action" === s"${action.Interactive}")
-      .where($"$Event_type" === s"${event_type.Click}")
+      .where($"$Col_action" === s"${action.Interactive}")
+      .where($"$Col_event_type" === s"${event_type.Click}")
       .rdd
       .map { row =>
-        val list = myudf.interactive_click_list(row.getAs[String](s"$Extinfo"))
+        val list = myudf.interactive_click_list(row.getAs[String](s"$Col_extinfo"))
         Row.fromSeq(row.toSeq.toList:::list)
       }
 
@@ -152,10 +155,10 @@ class Init_dw(sparkSession: SparkSession, path: String) {
     val temp_interactive_click = sparkSession
       .createDataFrame(temp0_interactive_click
         , Ods_01_user_action_log.schema
-          .add(s"$Target_action", StringType)
-          .add(s"$Target_id", StringType)
-          .add(s"$Target_pay_type", StringType)
-          .add(s"$Target_pay_code", StringType))
+          .add(s"$Col_target_action", StringType)
+          .add(s"$Col_target_id", StringType)
+          .add(s"$Col_target_pay_type", StringType)
+          .add(s"$Col_target_pay_code", StringType))
     temp_interactive_click.createOrReplaceTempView(TableName_temp_interactive_click)
     temp_interactive_click.cache()
   }
@@ -165,7 +168,7 @@ class Init_dw(sparkSession: SparkSession, path: String) {
     import dw_shop.temp_interactive_click._
 
     val dw_actlog_shoper_attention = temp_interactive_click
-      .where($"$Target_action" === s"${target_action.Attention_shoper}")
+      .where($"$Col_target_action" === s"${target_action.Attention_shoper}")
       .selectExpr(dw_shop.dw_actlog_shoper_attention:_*)
 
     dw_actlog_shoper_attention.createOrReplaceTempView(TableName_dw_actlog_shoper_attention)
@@ -177,7 +180,7 @@ class Init_dw(sparkSession: SparkSession, path: String) {
     import ods_shop.innerTable.extinfo_interactive_click._
 
     val dw_actlog_order = temp_interactive_click
-      .where($"$Target_action" === s"${target_action.Order_commit}")
+      .where($"$Col_target_action" === s"${target_action.Order_commit}")
       .withColumn(s"${dw_shop.dw_actlog_order.Target_price}", null_colume())
       .selectExpr(dw_shop.dw_actlog_order:_*)
 

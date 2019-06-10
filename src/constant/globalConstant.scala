@@ -8,7 +8,7 @@ package constant
   * 因为scala中, 首字母小写在某些环境下会被视为变量
   * 但是如果先java那样, 全字母大写, 又太难认单词了
   */
-object nameInfo {
+object globalConstant {
 
   /****** ========== 自定义函数名 ========== ******/
   final val UdfName_get_target_ids = "get_target_ids"
